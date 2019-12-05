@@ -40,6 +40,15 @@ def generate_random_examples(n, Gs, kind):
         png_filename = os.path.join(config.result_dir, kind, 'example_{}.png'.format(i))
         PIL.Image.fromarray(images[0], 'RGB').save(png_filename)
 
+def custom_latent_to_image(latent, Gs, result):
+    # Generate image.
+    fmt = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
+    images = Gs.run(latent, None, truncation_psi=0.7, randomize_noise=True, output_transform=fmt)
+
+    # Save image.
+    os.makedirs(config.result_dir, exist_ok=True)
+    png_filename = os.path.join(config.result_dir, result)
+    PIL.Image.fromarray(images[0], 'RGB').save(png_filename)  
 
 def main():
     # Initialize TensorFlow.
@@ -65,6 +74,7 @@ def main():
     generate_random_examples(10, load_gs(url_faces), 'faces')
     generate_random_examples(10, load_gs(url_cars), 'cars')
     generate_random_examples(10, load_gs(url_bedrooms), 'bedrooms')
+    #custom_latent_to_image(np.load('data/latent_representations/our/rosh1_aligned.npy'), load_gs(url_faces), 'custom_face.png')
 
 if __name__ == "__main__":
     main()

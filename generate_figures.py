@@ -65,7 +65,10 @@ def draw_style_mixing_figure(png, Gs, w, h, src_seeds, dst_seeds, style_ranges):
     
     src_images = Gs.components.synthesis.run(src_dlatents, randomize_noise=False, **synthesis_kwargs)
     dst_images = Gs.components.synthesis.run(dst_dlatents, randomize_noise=False, **synthesis_kwargs)
-    
+    print(src_dlatents.shape)
+    print(dst_dlatents.shape)
+    print(src_images.shape)
+    print(dst_images.shape)
     #print(dst_images.shape) (6,10,24,1024,3)
     canvas = PIL.Image.new('RGB', (w * (len(src_seeds) + 1), h * (len(dst_seeds) + 1)), 'white')
     for col, src_image in enumerate(list(src_images)):
@@ -140,26 +143,35 @@ def draw_truncation_trick_figure(png, Gs, w, h, seeds, psis):
             canvas.paste(PIL.Image.fromarray(image, 'RGB'), (col * w, row * h))
     canvas.save(png)
 
-def draw_style_mixing_custom(png, s_l, d_l, s_img, d_img, Gs, w, h, style_ranges):
-    print(png)
-    src_dlatents = np.load(s_l)
-    src_dlatents = np.expand_dims(src_dlatents, axis=0)
+def draw_style_mixing_custom(result, s_l, d_l, s_img, d_img, Gs, w, h, style_ranges):
+    '''
+    '''
+    src_images = []
+    src_dlatents = []
+    src_cnt = 0
+    for filename in os.listdir(s_img):
+        src_images.append(np.array(PIL.Image.open(os.path.join(s_img, filename))))
+        src_dlatents.append(np.load(os.path.join(s_l, os.path.splitext(filename)[0]+'.npy')))
+        src_cnt += 1
+    src_dlatents = np.array(src_dlatents)
+    src_images = np.array(src_images)
 
-    dst_dlatents = np.load(d_l)
-    dst_dlatents = np.expand_dims(dst_dlatents, axis=0)
+    dst_images = []
+    dst_dlatents = []
+    dst_cnt = 0
+    for filename in os.listdir(d_img):
+        dst_images.append(np.array(PIL.Image.open(os.path.join(d_img, filename))))
+        dst_dlatents.append(np.load(os.path.join(d_l, os.path.splitext(filename)[0]+'.npy')))
+        dst_cnt += 1
+    dst_dlatents = np.array(dst_dlatents)
+    dst_images = np.array(dst_images)
 
-    src_images = np.array(PIL.Image.open(s_img))
-    src_images = np.expand_dims(src_images, axis=0)
-    
-    dst_images = np.array(PIL.Image.open(d_img))
-    dst_images = np.expand_dims(dst_images, axis=0)
-
-    canvas = PIL.Image.new('RGB', (w * (1 + 1), h * (1 + 1)), 'white')
+    canvas = PIL.Image.new('RGB', (w * (src_cnt + 1), h * (dst_cnt + 1)), 'white')
     for col, src_image in enumerate(list(src_images)):
         canvas.paste(PIL.Image.fromarray(src_image, 'RGB'), ((col + 1) * w, 0))
     for row, dst_image in enumerate(list(dst_images)):
         canvas.paste(PIL.Image.fromarray(dst_image, 'RGB'), (0, (row + 1) * h))
-        row_dlatents = np.stack([dst_dlatents[row]] * 1)
+        row_dlatents = np.stack([dst_dlatents[row]] * src_cnt)
 
         row_dlatents[:, style_ranges[row]] = src_dlatents[:, style_ranges[row]]
         row_images = Gs.components.synthesis.run(row_dlatents, randomize_noise=False, **synthesis_kwargs)
@@ -180,7 +192,7 @@ def main():
     #draw_uncurated_result_figure(os.path.join(config.result_dir, 'figure10-uncurated-bedrooms.png'), load_Gs(url_bedrooms), cx=0, cy=0, cw=256, ch=256, rows=5, lods=[0,0,1,1,2,2,2], seed=0)
     #draw_uncurated_result_figure(os.path.join(config.result_dir, 'figure11-uncurated-cars.png'), load_Gs(url_cars), cx=0, cy=64, cw=512, ch=384, rows=4, lods=[0,1,2,2,3,3], seed=2)
     #draw_uncurated_result_figure(os.path.join(config.result_dir, 'figure12-uncurated-cats.png'), load_Gs(url_cats), cx=0, cy=0, cw=256, ch=256, rows=5, lods=[0,0,1,1,2,2,2], seed=1)
-    draw_style_mixing_custom(os.path.join(config.result_dir, 'our_example4.png'), 'data/latent_representations/aks_aligned.npy', 'data/latent_representations/jplie_aligned.npy', 'data/aks.jpg', 'data/jplie.jpg', load_Gs(url_ffhq), w=1024, h=1024, style_ranges=[range(0,4)]*3+[range(4,8)]*2+[range(8,18)])
+    draw_style_mixing_custom(os.path.join(config.result_dir, 'custom.png'), './data/latent_representations/our', './data/latent_representations/celeb', './data/aligned_images/our', './data/aligned_images/celeb', load_Gs(url_ffhq), w=1024, h=1024, style_ranges=[range(0,4)]*3+[range(4,8)]*2+[range(8,18)])
     
 #----------------------------------------------------------------------------
 
